@@ -7,7 +7,7 @@ entry-point = "main.jac"
 cytoscape = "^3.26.0"
 
 [serve]
-base_route_app = "app"
+base_route_app = ""
 
 [plugins.client]
 
