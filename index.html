@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veritas</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f13;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .container { width: 100%; max-width: 720px; }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle { color: #6b7280; font-size: 0.9rem; margin-bottom: 32px; }
+
+    .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 16px;
+      background: #1c1c26;
+      border: 1px solid #2e2e40;
+      border-radius: 8px;
+      color: #e8e8f0;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: #a78bfa; }
+    input[type="text"]::placeholder { color: #4b5563; }
+
+    button {
+      padding: 12px 24px;
+      background: #7c3aed;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+    button:hover:not(:disabled) { background: #6d28d9; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: #1c1c26;
+      border: 1px solid #2e2e40;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: #a78bfa;
+    }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #3b2e6e;
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      padding: 14px 16px;
+      background: #1f0f0f;
+      border: 1px solid #7f1d1d;
+      border-radius: 8px;
+      color: #fca5a5;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .verdict-card {
+      background: #1c1c26;
+      border: 1px solid #2e2e40;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .verdict-header {
+      padding: 14px 18px;
+      background: #22223a;
+      border-bottom: 1px solid #2e2e40;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #a78bfa;
+    }
+
+    .verdict-body { padding: 18px; }
+
+    .confidence-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .confidence-label { font-size: 0.85rem; color: #9ca3af; flex-shrink: 0; }
+
+    .confidence-bar {
+      flex: 1;
+      height: 6px;
+      background: #2e2e40;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #7c3aed, #60a5fa);
+      transition: width 0.6s ease;
+    }
+
+    .confidence-pct { font-size: 0.85rem; font-weight: 600; color: #a78bfa; }
+
+    .summary { font-size: 1rem; line-height: 1.6; margin-bottom: 14px; }
+
+    .reasoning {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: #9ca3af;
+      border-top: 1px solid #2e2e40;
+      padding-top: 14px;
+    }
+
+    .evidence-section { margin-top: 8px; }
+
+    .evidence-section h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .evidence-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+    .evidence-item {
+      padding: 12px 14px;
+      background: #16161f;
+      border: 1px solid #2e2e40;
+      border-left-width: 3px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .evidence-item.supports { border-left-color: #22c55e; }
+    .evidence-item.contradicts { border-left-color: #ef4444; }
+
+    .evidence-meta {
+      font-size: 0.78rem;
+      color: #6b7280;
+      margin-top: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-right: 6px;
+    }
+
+    .badge.supports { background: #14532d; color: #4ade80; }
+    .badge.contradicts { background: #450a0a; color: #f87171; }
+
+    .docs-hint {
+      margin-top: 32px;
+      padding: 12px 16px;
+      background: #1c1c26;
+      border: 1px dashed #2e2e40;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+    .docs-hint a { color: #a78bfa; text-decoration: none; }
+    .docs-hint a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Veritas</h1>
+    <p class="subtitle">AI-powered factual claim verification</p>
+
+    <div class="input-row">
+      <input type="text" id="claimInput" placeholder="Enter a claim to verify…" autocomplete="off" />
+      <button id="verifyBtn">Verify</button>
+    </div>
+
+    <div id="statusBox" class="status" style="display:none">
+      <div class="spinner"></div>
+      <span id="statusText">Agent Researching…</span>
+    </div>
+
+    <div id="errorBox" class="error-box" style="display:none"></div>
+
+    <div id="verdictCard" class="verdict-card" style="display:none">
+      <div class="verdict-header">Verdict</div>
+      <div class="verdict-body">
+        <div class="confidence-row">
+          <span class="confidence-label">Confidence</span>
+          <div class="confidence-bar"><div id="confidenceFill" class="confidence-fill" style="width:0%"></div></div>
+          <span id="confidencePct" class="confidence-pct">0%</span>
+        </div>
+        <p id="summaryText" class="summary"></p>
+        <p id="reasoningText" class="reasoning"></p>
+      </div>
+    </div>
+
+    <div id="evidenceSection" class="evidence-section" style="display:none">
+      <h3>Evidence</h3>
+      <ul id="evidenceList" class="evidence-list"></ul>
+    </div>
+
+    <div class="docs-hint">
+      Backend API docs: <a href="http://localhost:8000/docs" target="_blank">http://localhost:8000/docs</a>
+      &nbsp;·&nbsp; Start server: <code>jac start main.jac</code>
+    </div>
+  </div>
+
+<script>
+  const API = 'http://localhost:8000';
+
+  const claimInput      = document.getElementById('claimInput');
+  const verifyBtn       = document.getElementById('verifyBtn');
+  const statusBox       = document.getElementById('statusBox');
+  const statusText      = document.getElementById('statusText');
+  const errorBox        = document.getElementById('errorBox');
+  const verdictCard     = document.getElementById('verdictCard');
+  const confidenceFill  = document.getElementById('confidenceFill');
+  const confidencePct   = document.getElementById('confidencePct');
+  const summaryText     = document.getElementById('summaryText');
+  const reasoningText   = document.getElementById('reasoningText');
+  const evidenceSection = document.getElementById('evidenceSection');
+  const evidenceList    = document.getElementById('evidenceList');
+
+  // ── helpers ──────────────────────────────────────────────────────────────────
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function apiPost(path, body) {
+    const r = await fetch(API + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + await r.text());
+    return r.json();
+  }
+
+  async function apiGet(path) {
+    const r = await fetch(API + path);
+    if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + await r.text());
+    return r.json();
+  }
+
+  // ── UI state ─────────────────────────────────────────────────────────────────
+
+  function setLoading(on, msg) {
+    statusBox.style.display = on ? 'flex' : 'none';
+    if (msg) statusText.textContent = msg;
+    verifyBtn.disabled = on;
+  }
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = msg ? 'block' : 'none';
+  }
+
+  function clearResults() {
+    errorBox.style.display        = 'none';
+    verdictCard.style.display     = 'none';
+    evidenceSection.style.display = 'none';
+    evidenceList.innerHTML        = '';
+  }
+
+  function showVerdict(d) {
+    const pct = Math.round((d.confidence || 0) * 100);
+    confidenceFill.style.width = pct + '%';
+    confidencePct.textContent  = pct + '%';
+    summaryText.textContent    = d.summary   || '';
+    reasoningText.textContent  = d.reasoning || '';
+    verdictCard.style.display  = 'block';
+  }
+
+  function showEvidence(items) {
+    if (!items || !items.length) return;
+    items.forEach(function(ev) {
+      const li    = document.createElement('li');
+      const type  = ev.supports ? 'supports' : 'contradicts';
+      const label = ev.supports ? 'Supports'  : 'Contradicts';
+      li.className = 'evidence-item ' + type;
+      li.innerHTML =
+        '<span class="badge ' + type + '">' + label + '</span>' +
+        (ev.snippet || '') +
+        '<div class="evidence-meta">' + (ev.url || '') + '</div>';
+      evidenceList.appendChild(li);
+    });
+    evidenceSection.style.display = 'block';
+  }
+
+  // ── job polling ───────────────────────────────────────────────────────────────
+
+  const POLL_MESSAGES = [
+    'Decomposing claim into queries…',
+    'Searching the web for evidence…',
+    'Analysing sources…',
+    'Synthesising verdict…',
+  ];
+
+  async function pollJob(jobId) {
+    let tick = 0;
+    while (true) {
+      setLoading(true, POLL_MESSAGES[tick % POLL_MESSAGES.length]);
+      tick++;
+      await sleep(2500);
+      const job = await apiGet('/jobs/' + jobId);
+      const s = (job.status || '').toLowerCase();
+      if (s === 'completed' || s === 'success' || s === 'done') {
+        return job.result != null ? job.result : job;
+      }
+      if (s === 'failed' || s === 'error') {
+        throw new Error('Job failed: ' + JSON.stringify(job.error || job));
+      }
+    }
+  }
+
+  // ── main flow ─────────────────────────────────────────────────────────────────
+
+  async function verify() {
+    const claim = claimInput.value.trim();
+    if (!claim) { showError('Please enter a claim to verify.'); return; }
+
+    clearResults();
+    setLoading(true, 'Submitting claim…');
+
+    try {
+      // POST /walker/VerifyClaim  →  sync { reports: [...] }  OR  async { job_id: "..." }
+      const res = await apiPost('/walker/VerifyClaim', {
+        claim_text: claim,
+        max_results: 3
+      });
+
+      let payload;
+      if (res && res.job_id) {
+        payload = await pollJob(res.job_id);
+      } else {
+        payload = res;
+      }
+
+      // Unwrap JacCloud reports envelope: { reports: [...] } or bare object
+      const reports = payload && (payload.reports || payload.report);
+      const data    = Array.isArray(reports) && reports.length ? reports[0] : payload;
+
+      if (!data || data.error) {
+        showError(data ? data.error : 'No result returned — check /docs.');
+        return;
+      }
+
+      showVerdict(data);
+      showEvidence(data.evidence || []);
+
+    } catch (err) {
+      showError(err.message || String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  verifyBtn.addEventListener('click', verify);
+  claimInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') verify();
+  });
+</script>
+</body>
+</html>
