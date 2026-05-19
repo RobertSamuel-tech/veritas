@@ -183,4 +183,21 @@ Most hackathon projects bolt an LLM onto an existing web framework. Veritas is d
 
 ---
 
+### Test Claims
+
+Use these claims to try out Veritas:
+
+| Claim | Expected Verdict |
+|-------|-----------------|
+| Vaccines cause autism. | False |
+| Human activity is the primary driver of current global warming. | True |
+| Large language models can hallucinate incorrect information. | True |
+| Electric vehicles produce fewer lifetime emissions than gasoline cars. | True (generally) |
+| Humans use only 10% of their brains. | False |
+| 5G networks cause harmful health effects. | False |
+| The Great Wall of China is visible from space. | False |
+| Drinking coffee causes dehydration. | False |
+
+---
+
 *Built for JacHacks Spring 2026 by the Veritas team.*

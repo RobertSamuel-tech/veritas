@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Testing and caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+jac_out.txt
+jac_err.txt
+jac_errors.txt
+
+# Databases
+*.sqlite
+*.db
+
+# Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+frontend/.cache/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jac generated
+.jac/
