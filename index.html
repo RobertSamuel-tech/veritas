@@ -373,30 +373,21 @@
     setLoading(true, 'Submitting claim…');
 
     try {
-      // POST /walker/VerifyClaim  →  sync { reports: [...] }  OR  async { job_id: "..." }
       const res = await apiPost('/walker/VerifyClaim', {
         claim_text: claim,
         max_results: 3
       });
 
-      let payload;
-      if (res && res.job_id) {
-        payload = await pollJob(res.job_id);
-      } else {
-        payload = res;
-      }
+      const reports = res?.data?.reports || [];
+      const finalResult = reports.find(r => r.summary) || reports[reports.length - 1];
 
-      // Unwrap JacCloud reports envelope: { reports: [...] } or bare object
-      const reports = payload && (payload.reports || payload.report);
-      const data    = Array.isArray(reports) && reports.length ? reports[0] : payload;
-
-      if (!data || data.error) {
-        showError(data ? data.error : 'No result returned — check /docs.');
+      if (!finalResult || !finalResult.summary) {
+        showError('No verdict returned.');
         return;
       }
 
-      showVerdict(data);
-      showEvidence(data.evidence || []);
+      showVerdict(finalResult);
+      showEvidence(finalResult.evidence || []);
 
     } catch (err) {
       showError(err.message || String(err));
