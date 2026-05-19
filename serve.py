@@ -11,9 +11,9 @@ Run with:
 """
 
 import asyncio
+import os
 import subprocess
 import sys
-import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -26,16 +26,29 @@ JAC_PORT = 8001
 PROXY_PORT = 8000
 JAC_BACKEND = f"http://localhost:{JAC_PORT}"
 INDEX_HTML = Path(__file__).parent / "index.html"
-def _find_jac() -> str:
+
+
+def _find_jac() -> Path:
+    # Prefer the venv jac that matches this project's installed packages.
+    venv_jac = Path(__file__).parent / ".venv" / "Scripts" / "jac.exe"
+    if venv_jac.exists():
+        return venv_jac
+
     import shutil
+
     found = shutil.which("jac")
     if found:
-        return found
-    # User-scripts fallback for Windows pip --user installs
+        return Path(found)
+
+    # Fallback: pip --user install on Windows
     roaming = Path.home() / "AppData" / "Roaming" / "Python"
     for candidate in sorted(roaming.glob("Python3*/Scripts/jac.exe"), reverse=True):
-        return str(candidate)
-    raise FileNotFoundError("jac executable not found — ensure jaclang is installed")
+        return candidate
+
+    raise FileNotFoundError(
+        "jac executable not found — activate the venv or install jaclang"
+    )
+
 
 JAC_EXE = _find_jac()
 
@@ -47,21 +60,35 @@ _http_client: httpx.AsyncClient | None = None
 async def lifespan(app: FastAPI):
     global _jac_process, _http_client
 
-    # Start the Jac backend
+    # Inherit env and force UTF-8 so jac's Rich banner doesn't crash on Windows.
+    env = os.environ.copy()
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+
+    print(f"[serve.py] Starting jac backend:  {JAC_EXE} start main.jac -p {JAC_PORT}")
     _jac_process = subprocess.Popen(
-        [str(JAC_EXE), "start", "main.jac", "--port", str(JAC_PORT)],
+        [str(JAC_EXE), "start", "main.jac", "-p", str(JAC_PORT)],
         cwd=Path(__file__).parent,
+        env=env,
     )
-    # Wait for Jac backend to bind its port (TCP check)
-    for _ in range(30):
+
+    # Wait up to 15 s for the jac backend to accept TCP connections.
+    print(f"[serve.py] Waiting for jac on port {JAC_PORT}…")
+    for attempt in range(30):
         await asyncio.sleep(0.5)
         try:
             _, writer = await asyncio.open_connection("127.0.0.1", JAC_PORT)
             writer.close()
             await writer.wait_closed()
+            print(f"[serve.py] Jac backend ready on port {JAC_PORT}.")
             break
         except OSError:
-            continue
+            pass
+    else:
+        print(
+            f"[serve.py] WARNING: jac did not bind port {JAC_PORT} within 15 s — "
+            "proxy will return 503 until it does."
+        )
 
     _http_client = httpx.AsyncClient(base_url=JAC_BACKEND, timeout=60)
     yield
@@ -105,7 +132,6 @@ async def proxy(path: str, request: Request):
             headers=headers,
             content=body,
         )
-        # Strip hop-by-hop headers that should not be forwarded
         excluded = {
             "transfer-encoding",
             "connection",
